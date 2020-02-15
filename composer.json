@@ -1,0 +1,24 @@
+{
+    "name": "phpload/downloaded-premiumaccount",
+    "description": "Downloaded.net Premium account bundle for phpload.",
+    "type": "yii2-extension",
+    "authors": [
+        {
+            "name": "Henry Volkmer",
+            "email": "henry.volkmer@mailbox.org",
+            "homepage": "https://github.com/phpload"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "phpload/core": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpload\\DownloadedNetAccount\\": "src"
+        }
+    },
+    "extra": {
+        "bootstrap": "Phpload\\DownloadedNetAccount\\Bootstrap"
+    }
+}
