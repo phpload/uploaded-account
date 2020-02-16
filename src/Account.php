@@ -2,16 +2,16 @@
 
 declare (strict_types=1);
 
-namespace phpload\UploadedNetAccount;
+namespace Phpload\UploadedNetAccount;
 
 use Yii;
-use yii\httpclient\Client;
+use yii\httpclient\{Client,Request};
 use yii\helpers\ArrayHelper;
-use yii\base\
-use phpload\models\PremiumAccount;
-use phpload\interfaces\PremiumAccountInterface;
+use phpload\core\models\PremiumAccount;
+use phpload\core\interfaces\PremiumAccountInterface;
+use yii\helpers\BaseConsole;
 
-final class UploadedNetAccount extends PremiumAccount implements BootstrapInterface,PremiumAccountInterface
+final class Account extends PremiumAccount implements PremiumAccountInterface
 {
 	const LOGIN_URL = 'http://uploaded.net/io/login';
 
@@ -29,11 +29,9 @@ final class UploadedNetAccount extends PremiumAccount implements BootstrapInterf
 	 */
 	public $url;
 
-	public function setCookies(array $cookies): PremiumAccountInterface
+	public function getTitle(): string
 	{
-		$this->cookies = $cookies;
-
-		return $this;
+		return 'Uploaded.net';
 	}
 
 	public function getCookies(): array
@@ -42,31 +40,25 @@ final class UploadedNetAccount extends PremiumAccount implements BootstrapInterf
 			throw new \yii\base\InvalidConfigException("Eihter username nore password are set.");
 		}
 
-		if (!$this->cookies) {
-			$response = (new Client())->post(self::LOGIN_URL,[
-				'id' => $this->username,
-				'pw' => $this->password
-			])->send();
+		$response = (new Client())->post(self::LOGIN_URL,[
+			'id' => $this->username,
+			'pw' => $this->password
+		])->send();
 
-			$this->cookies = $response->getCookies();
-		}
+		return $response->getCookies()->toArray();
+	}
 
-		return $this->cookies->toArray();
+	public function promptCredentials()
+	{
+		$this->username = BaseConsole::input("username:");
+		$this->password = BaseConsole::input("password:");
+
+		return;
 	}
 
 	public function setLink(string $link)
 	{
-
-		Yii::trace("resolve DLC Item  " . print_r($link,true),__METHOD__);
-
 		$this->url = $this->resolveUrlByLink($link);
-
-		Yii::error("URL is " . print_r($this->url,true),__METHOD__);
-
-		if (!$this->url) {
-			throw new \yii\base\InvalidConfigException("url is null");
-		}
-
 	}
 
 	/**
@@ -76,11 +68,11 @@ final class UploadedNetAccount extends PremiumAccount implements BootstrapInterf
 	 *
 	 * @return string|null the url or null if no url could be found
 	 */
-	private function resolveUrlByLink(string $link): string
+	private function resolveUrlByLink(string $link): ?string
 	{
 		$response  = (new Client())
 			->get($link)
-			->setCookies($this->getCookies());
+			->setCookies($this->authCookies);
 
 		$response = $response->send();
 
@@ -95,35 +87,30 @@ final class UploadedNetAccount extends PremiumAccount implements BootstrapInterf
 		$link = $form[0]->getAttribute('action');
 
 		if (preg_match("/\/\/uploaded/", $link)) {
-			Yii::error(print_r($this->getCookies(),true),__METHOD__);
+			return null;
 		}
 
 		return $link ?? null;
 	}
 
-	public function download(Client $client, $filehandler): bool
+	public function download(Client $client, $filehandler): ?Request
 	{
 		if (!$this->url) {
 			Yii::error(print_r("NO URL, abort",true),__METHOD__);
-			return false;
+			return null;
 		}
 
-		$response = $client->createRequest()
+		return $client->createRequest()
 			->setMethod('GET')
 			->setUrl($this->url)
 			->setOutputFile($filehandler)
-			->setCookies($this->cookies)
-			->send();
-
-		return true;
+			->setCookies($this->authCookies)
+		;
 	}
 
 	public function getContentlength(): int
 	{
 		if (!$this->contentlength) {
-
-			Yii::error("LINK IS " . print_r($this->getUrl(),true),__METHOD__);
-
 			$this->setFileheader($this->getUrl());	
 		}
 
@@ -148,7 +135,7 @@ final class UploadedNetAccount extends PremiumAccount implements BootstrapInterf
 	{
 		$head = (new Client())
 			->head($url)
-			->setCookies($this->getCookies())
+			->setCookies($this->authCookies)
 			->send();
 
 		$headers = $head->getHeaders();
@@ -163,15 +150,28 @@ final class UploadedNetAccount extends PremiumAccount implements BootstrapInterf
 		$this->filename = ArrayHelper::getValue($matches,1);
 	}
 
-	public function getUrl(): string
+	public function getUrl(): ?string
 	{
 		return $this->url;
 	}
 
-	public function setUrl($url): UploadedNetAccount
+	public function setUrl($url): self
 	{
 		$this->url = $url;
 		return $this;
 	}
 
+	/**
+	 * http://ul.to/akdoy3af
+	 */
+	public function probeResponsibility(string $link): bool
+	{
+		return true;
+		
+		if (preg_match("//", $link)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 }

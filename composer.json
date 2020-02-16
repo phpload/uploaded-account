@@ -1,5 +1,5 @@
 {
-    "name": "phpload/downloaded-premiumaccount",
+    "name": "phpload/uploaded-premiumaccount",
     "description": "Downloaded.net Premium account bundle for phpload.",
     "type": "yii2-extension",
     "authors": [
@@ -15,10 +15,10 @@
     },
     "autoload": {
         "psr-4": {
-            "Phpload\\DownloadedNetAccount\\": "src"
+            "Phpload\\UploadedNetAccount\\": "src"
         }
     },
     "extra": {
-        "bootstrap": "Phpload\\DownloadedNetAccount\\Bootstrap"
+        "bootstrap": "Phpload\\UploadedNetAccount\\Bootstrap"
     }
 }
