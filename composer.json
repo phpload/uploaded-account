@@ -1,5 +1,5 @@
 {
-    "name": "phpload/uploaded-premiumaccount",
+    "name": "phpload/uploaded-account",
     "description": "Downloaded.net Premium account bundle for phpload.",
     "type": "yii2-extension",
     "authors": [
