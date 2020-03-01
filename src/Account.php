@@ -56,9 +56,11 @@ final class Account extends PremiumAccount implements PremiumAccountInterface
 		return;
 	}
 
-	public function setLink(string $link)
+	public function setUrl(string $link): self
 	{
 		$this->url = $this->resolveUrlByLink($link);
+
+		return $this;
 	}
 
 	/**
@@ -70,23 +72,31 @@ final class Account extends PremiumAccount implements PremiumAccountInterface
 	 */
 	private function resolveUrlByLink(string $link): ?string
 	{
-		$response  = (new Client())
+		Yii::error("Processing DLC Link " . print_r($link,true),__METHOD__);
+		$request  = (new Client())
 			->get($link)
 			->setCookies($this->authCookies);
 
-		$response = $response->send();
+		$response = $request->send();
+
+		if ($response->getStatusCode() == 451) {
+			Yii::error("file is suspended due to violations of the Terms and Conditions :/ " . $link,__METHOD__);
+			return null;
+		}
 
 		$doc = new \DOMDocument();
 		$doc->loadHTML($response->getContent(),LIBXML_NOWARNING | LIBXML_NOERROR);
 		$form = $doc->getElementsByTagName("form");
 
 		if (!isset ($form[0])) {
+			Yii::error(print_r("No Form Element found.",true),__METHOD__);
 			return null;
 		}
 
 		$link = $form[0]->getAttribute('action');
 
 		if (preg_match("/\/\/uploaded/", $link)) {
+			Yii::error(print_r("Download Ticket expired.",true),__METHOD__);
 			return null;
 		}
 
@@ -96,7 +106,6 @@ final class Account extends PremiumAccount implements PremiumAccountInterface
 	public function download(Client $client, $filehandler): ?Request
 	{
 		if (!$this->url) {
-			Yii::error(print_r("NO URL, abort",true),__METHOD__);
 			return null;
 		}
 
@@ -153,12 +162,6 @@ final class Account extends PremiumAccount implements PremiumAccountInterface
 	public function getUrl(): ?string
 	{
 		return $this->url;
-	}
-
-	public function setUrl($url): self
-	{
-		$this->url = $url;
-		return $this;
 	}
 
 	/**
